@@ -9,3 +9,15 @@ html, body {
     height: 100%;
     overflow: hidden;
 }
+#info {
+    width: 350px;
+    max-height: 300px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    position: absolute;
+    background: rgba(255,255,255,0.75);
+    border: 1px solid black;
+    border-radius: 5px;
+    padding: 5px;
+    display: none;
+}

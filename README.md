@@ -6,7 +6,7 @@ The minified javascript library is included for convenience.
 
 ## Requirements
 
-Python (versions 2.5 or 3.3 or above should work)
+Python (versions 2.5 or 3.3 or above should work), or any other web server.
 
 ## To Run
 python -m SimpleHTTPServer 8000
