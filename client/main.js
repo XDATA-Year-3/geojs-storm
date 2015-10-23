@@ -120,6 +120,7 @@ function plotData(map, data) {
     var info = {
         map: map,
         pointsFeature: feature,
+        legend: legend,
         data: data,
         style: style,
         columns: columns,
@@ -137,15 +138,21 @@ function plotData(map, data) {
     /* When the user clicks a point, dim all of the other categories.  If they
      * click the map in general, show everything the original amount.  We
      * capture the mousedown on the map element, and then react according to
-     * what point we were hvoering over.  We could instead capture both the
+     * what point we were hovering over.  We could instead capture both the
      * click on individual points AND on the map. */
     $(map.node()).on('mousedown', function (evt) {
         pointClick(evt, info);
     });
+
+    $('#map').on('mouseover', '.geo-label', function (evt) {
+        legendHover(evt, info, true);
+    }).on('mouseout', '.geo-label', function (evt) {
+        legendHover(evt, info, false);
+    });
 }
 
 /* When the mouse enters or leaves a point, show or hide a div with
- * information relatvie to the position of the point.
+ * information relative to the position of the point.
  *
  * @param evt: the geojs event.
  * @param info: an object with information about our data.
@@ -191,6 +198,15 @@ function pointClick(evt, info) {
     if ($('#info:visible').length > 0) {
         category = info.data[$('#info').attr('index')][info.catCol];
     }
+    showCategory(category, info);
+}
+
+/* Show only a particular category of event.
+ *
+ * @param category: the category to show or null for all categories.
+ * @param info: an object with information about our data.
+ */
+function showCategory(category, info) {
     if (category === info.currentCategory) {
         /* No changes, so don't do anything. */
         return;
@@ -221,4 +237,21 @@ function pointClick(evt, info) {
     mapper.updateSourceBuffer('strokeOpacity');
     /* Redraw the map */
     info.map.draw();
+}
+
+/* When the mouse enters or leaves a part of the legend, show just that
+ * category.
+ *
+ * @param evt: the jquery event.
+ * @param info: an object with information about our data.
+ * @param over: true if we are over the point, false if we have left it.
+ */
+function legendHover(evt, info, over) {
+    var category = null;
+
+    if (over) {
+        var pos = $(evt.target).closest('.geo-label').index() - 1;
+        category = info.legend[pos].name;
+    }
+    showCategory(category, info);
 }
