@@ -111,16 +111,22 @@ function plotData(map, data) {
     var ui = map.createLayer('ui');
     ui.createWidget('legend').categories(legend);
 
+    /* Draw everything we've added */
+    map.draw();
+
     /* Show a tooltip on any point that we hover over.  We put a bunch of our
      * values into an object so that the events can use them without passing
      * everything individually. */
     var info = {
         map: map,
+        pointsFeature: feature,
         data: data,
+        style: style,
         columns: columns,
         lonCol: lonCol,
         latCol: latCol,
-        catCol: catCol
+        catCol: catCol,
+        currentCategory: null
     };
     feature.geoOn(geo.event.feature.mouseover, function (evt) {
         pointInformation(evt, info, true);
@@ -128,7 +134,14 @@ function plotData(map, data) {
         pointInformation(evt, info, false);
     });
 
-    map.draw();
+    /* When the user clicks a point, dim all of the other categories.  If they
+     * click the map in general, show everything the original amount.  We
+     * capture the mousedown on the map element, and then react according to
+     * what point we were hvoering over.  We could instead capture both the
+     * click on individual points AND on the map. */
+    $(map.node()).on('mousedown', function (evt) {
+        pointClick(evt, info);
+    });
 }
 
 /* When the mouse enters or leaves a point, show or hide a div with
@@ -143,6 +156,10 @@ function pointInformation(evt, info, over) {
         if ($('#info').attr('index') === '' + evt.index) {
             $('#info').hide();
         }
+        return;
+    }
+    /* If we hid the point via opacity, don't react to it. */
+    if (info.currentCategory !== null && evt.data[info.catCol] !== info.currentCategory) {
         return;
     }
     var pos = info.map.gcsToDisplay({
@@ -160,4 +177,48 @@ function pointInformation(evt, info, over) {
         top: (pos.y + 10) + 'px'
     }).text(text).attr('index', evt.index);
     $('#info').show();
+}
+
+/* Handle clicking on the map.  If we have a point that we are hovering over,
+ * then make all points of a different type transparent.  Otherwise, show all
+ * points.
+ *
+ * @param evt: the jquery event that triggered this call.
+ * @param info: an object with information about our data.
+ */
+function pointClick(evt, info) {
+    var category = null;
+    if ($('#info:visible').length > 0) {
+        category = info.data[$('#info').attr('index')][info.catCol];
+    }
+    if (category === info.currentCategory) {
+        /* No changes, so don't do anything. */
+        return;
+    }
+    info.currentCategory = category;
+    /* We reach into some of the internals in vgl so that we can get the speed
+     * of using webGl. */
+    var vpf = info.pointsFeature.verticesPerFeature(),
+        mapper = info.pointsFeature.actors()[0].mapper();
+    /* This gets us direct access to the buffers used by webGl */
+    var fillOpacityBuffer = mapper.getSourceBuffer('fillOpacity'),
+        strokeOpacityBuffer = mapper.getSourceBuffer('strokeOpacity');
+    var i, j, v, fillOpacity, strokeOpacity;
+    for (i = 0, v = 0; i < info.data.length; i += 1) {
+        if (category === null || info.data[i][info.catCol] === category) {
+            fillOpacity = info.style.fillOpacity;
+            strokeOpacity = info.style.strokeOpacity;
+        } else {
+            fillOpacity = strokeOpacity = 0;
+        }
+        for (j = 0; j < vpf; j += 1, v += 1) {
+            fillOpacityBuffer[v] = fillOpacity;
+            strokeOpacityBuffer[v] = strokeOpacity;
+        }
+    }
+    /* Notify the mapper that these buffers have been updated */
+    mapper.updateSourceBuffer('fillOpacity');
+    mapper.updateSourceBuffer('strokeOpacity');
+    /* Redraw the map */
+    info.map.draw();
 }
