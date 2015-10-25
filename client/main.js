@@ -27,6 +27,8 @@ $(function () {
     $.ajax({
         /* This is a copy of ftp://ftp.ncdc.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2015_c20151021.csv.gz that has been gunziped for convenience */
         url: 'https://data.kitware.com/api/v1/file/562a3aa18d777f7522dbeebf/download',
+        /* Fallback for slow wifi. Comment out the above and uncomment below. */
+        // url: 'storms1000.csv',
         success: function (csvd) {
             var data = $.csv2Array(csvd);
             plotData(map, data);
